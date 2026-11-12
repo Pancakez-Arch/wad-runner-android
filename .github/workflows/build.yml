@@ -39,6 +39,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action's default list includes the long-removed 'tools' package, which now fails.
+          packages: platform-tools
 
       # ---- Engine: compile the GPL C sources in engine/ to WebAssembly ----
       - name: Cache Emscripten SDK
