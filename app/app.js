@@ -32,6 +32,12 @@
     holders.clear();
   }
   function turn(dx) { if (engineReady() && dx) Module._dg_push_mouse(0, Math.round(dx)); }
+  // Vertical free-look (engine extension): -60 (down) .. +60 (up), 200-line pixels.
+  let look = 0;
+  function setLook(v) {
+    look = Math.max(-60, Math.min(60, v));
+    if (window.Module && Module._dg_set_look) Module._dg_set_look(Math.round(look));
+  }
   function resumeAudio() {
     const ctx = window.Module && Module.SDL2 && Module.SDL2.audioContext;
     if (ctx && ctx.state === 'suspended') ctx.resume();
@@ -260,6 +266,7 @@
   pad.hidden = true;
   pad.innerHTML = `
     <div class="zone" id="stickZone"><div class="stick idle" id="stick"><div class="knob" id="knob"></div></div></div>
+    <div class="lookzone" id="lookZone"></div>
     <div class="top">
       <button class="b" data-tap="esc">MENU</button>
       <button class="b" data-tap="enter">ENTER</button>
@@ -278,12 +285,18 @@
   document.body.append(pauseEl);
 
   let usingPad = matchMedia('(pointer: coarse)').matches;
-  const showPad = () => { pad.hidden = !(playing && usingPad); };
+  const showPad = () => {
+    const wasHidden = pad.hidden;
+    pad.hidden = !(playing && usingPad);
+    if (wasHidden && !pad.hidden) requestAnimationFrame(() => resetStick());
+  };
 
   document.addEventListener('wad:playing', () => {
     playing = true;
+    setLook(0);
     keepAwake(true);
     showPad();
+    requestAnimationFrame(resetStick);   // place the stick once the pad has a size
   });
   document.addEventListener('wad:stopped', () => {
     playing = false;
@@ -366,9 +379,9 @@
   $('wpnBtn').addEventListener('pointerup', () => $('wpnBtn').classList.remove('on'));
   for (const b of pad.querySelectorAll('button')) b.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Floating stick: up/down = walk (digital keys), left/right = turn (analog, via mouse turning).
+  // Floating stick (left side): up/down = walk, left/right = turn.
   const zone = $('stickZone'), stick = $('stick'), knob = $('knob');
-  const R = 56;
+  const R = 44;
   let stickId = null, cx = 0, cy = 0, sx = 0, sy = 0;
   let fwd = 0;   // -1 back, 0, 1 forward
   function setFwd(v) {
@@ -418,8 +431,35 @@
   zone.addEventListener('pointercancel', stickUp);
   window.addEventListener('resize', () => { if (stickId === null) resetStick(); });
 
+  // Swipe on the right side to look: sideways = turn, up/down = look up/down.
+  // Double-tap there to re-centre the view.
+  const lookZone = $('lookZone');
+  const TURN_PER_PX = 5;      // ~360° per two screen widths
+  const LOOK_PER_PX = 0.35;
+  let lookId = null, lx = 0, ly = 0, lastTap = 0;
+  lookZone.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (lookId !== null) return;
+    lookId = e.pointerId;
+    try { lookZone.setPointerCapture(lookId); } catch (_) {}
+    lx = e.clientX; ly = e.clientY;
+    const now = Date.now();
+    if (now - lastTap < 300) setLook(0);
+    lastTap = now;
+  });
+  lookZone.addEventListener('pointermove', e => {
+    if (e.pointerId !== lookId) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
+    turn(dx * TURN_PER_PX);
+    if (dy) setLook(look - dy * LOOK_PER_PX);
+  });
+  const lookUp = e => { if (e.pointerId === lookId) lookId = null; };
+  lookZone.addEventListener('pointerup', lookUp);
+  lookZone.addEventListener('pointercancel', lookUp);
+
   // ------------------------------------------------------------ gamepad ----
-  // Standard mapping: left stick move/strafe, right stick turn, A/RT fire (+Enter in menus),
+  // Standard mapping: left stick move/strafe, right stick turn + look (click = re-centre), A/RT fire (+Enter in menus),
   // B use (+Backspace in menus), X next weapon, Y "yes", LB/RB strafe, LT run,
   // Back/Select automap, Start menu, D-pad arrows.
   const GP = { 0: ['fire', 'enter'], 1: ['use', 'back'], 3: ['yes'], 4: ['strafeL'], 5: ['strafeR'], 6: ['run'], 7: ['fire'],
@@ -447,12 +487,14 @@
         }
       });
       prevButtons[gp.index] = prev;
-      const [lx = 0, ly = 0, rx = 0] = gp.axes;
-      axisKey(gp.index + 'f', ly < -0.4, 'up');
-      axisKey(gp.index + 'b', ly > 0.4, 'down');
-      axisKey(gp.index + 'l', lx < -0.5, 'strafeL');
-      axisKey(gp.index + 'r', lx > 0.5, 'strafeR');
+      const [ax = 0, ay = 0, rx = 0, ry = 0] = gp.axes;
+      axisKey(gp.index + 'f', ay < -0.4, 'up');
+      axisKey(gp.index + 'b', ay > 0.4, 'down');
+      axisKey(gp.index + 'l', ax < -0.5, 'strafeL');
+      axisKey(gp.index + 'r', ax > 0.5, 'strafeR');
       if (Math.abs(rx) > 0.15) turn(Math.sign(rx) * rx * rx * 95);
+      if (Math.abs(ry) > 0.2) setLook(look - Math.sign(ry) * ry * ry * 2.5);
+      if (gp.buttons[11] && gp.buttons[11].pressed) setLook(0);   // right-stick click re-centres
     }
   }
   window.addEventListener('gamepadconnected', () => { usingPad = false; showPad(); });

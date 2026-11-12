@@ -55,6 +55,7 @@ extern lighttable_t**	walllights;
 
 int			centerx;
 int			centery;
+int			dg_lookdir = 0;    // free-look offset, set from JavaScript
 
 fixed_t			centerxfrac;
 fixed_t			centeryfrac;
@@ -831,6 +832,23 @@ void R_SetupFrame (player_t* player)
     extralight = player->extralight;
 
     viewz = player->viewz;
+
+    // Free-look (added for the app, like Heretic): shift the horizon by
+    // dg_lookdir (in 200-line screen pixels, + = up) and rebuild the floor/
+    // ceiling slopes for the new centre line. Aiming is unchanged (autoaim).
+    {
+        int newcentery = viewheight/2 + dg_lookdir * viewheight / 200;
+        if (newcentery != centery)
+        {
+            centery = newcentery;
+            centeryfrac = centery<<FRACBITS;
+            for (i=0 ; i<viewheight ; i++)
+            {
+                fixed_t dy = abs(((i-centery)<<FRACBITS)+FRACUNIT/2);
+                yslope[i] = FixedDiv ( (viewwidth<<detailshift)/2*FRACUNIT, dy);
+            }
+        }
+    }
     
     viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
     viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];

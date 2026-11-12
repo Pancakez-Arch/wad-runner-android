@@ -688,6 +688,8 @@ void R_DrawPSprite (pspdef_t* psp)
     vis->x1 = x1 < 0 ? 0 : x1;
     vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;	
     vis->scale = pspritescale<<detailshift;
+    // Keep the weapon fixed on screen while free-looking.
+    vis->texturemid += FixedDiv((centery - viewheight/2)<<FRACBITS, vis->scale);
     
     if (flip)
     {

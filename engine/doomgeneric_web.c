@@ -61,6 +61,15 @@ EMSCRIPTEN_KEEPALIVE void dg_set_paused(int on)
   }
 }
 
+// Free-look: vertical view offset in 200-line pixels (+ = look up), clamped.
+extern int dg_lookdir;
+EMSCRIPTEN_KEEPALIVE void dg_set_look(int look)
+{
+  if (look > 60) look = 60;
+  if (look < -60) look = -60;
+  dg_lookdir = look;
+}
+
 void DG_Init()
 {
   EM_ASM({

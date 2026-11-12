@@ -29,3 +29,6 @@ OPL music files from [Chocolate Doom](https://github.com/chocolate-doom/chocolat
     leaving the game with no players, which hung `P_LookForPlayers` (`g_game.c`).
 - `dg_set_paused(on)` (Android app): pauses an active level while the app is in the background
   and only un-pauses what it paused itself (`doomgeneric_web.c`).
+- Vertical free-look (`dg_set_look`): `R_SetupFrame` shifts `centery` by `dg_lookdir` and rebuilds
+  `yslope` (as Heretic does); the weapon sprite is compensated so it stays in place
+  (`r_main.c`, `r_things.c`, `doomgeneric_web.c`). Aiming is unchanged (vanilla autoaim).
