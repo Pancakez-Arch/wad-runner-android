@@ -79,7 +79,7 @@ cd android && ./gradlew assembleDebug                  # -> app/build/outputs/ap
      (`~/.ssh/wad_runner_android_deploy.pub`) and tick **Allow write access**.
    - Point git at it and push:
      ```sh
-     git remote add origin git@github.com:OWNER/REPO.git
+     git remote add origin git@github.com:Pancakez-Ach/wad-runner-android.git
      git config core.sshCommand "ssh -i ~/.ssh/wad_runner_android_deploy -o IdentitiesOnly=yes"
      git push -u origin main
      ```

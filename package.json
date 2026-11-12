@@ -17,5 +17,9 @@
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pancakez-Ach/wad-runner-android"
   }
 }
