@@ -1,0 +1,49 @@
+/* WAD Runner Android app layer: WAD library + touch stick. Loaded after the site's CSS. */
+
+/* The app replaces the site's single-file picker and button pad. */
+body.app #drop, body.app #remembered, body.app #installBox, body.app label.pw,
+body.app #touch, body.app details, body.app .rotate { display: none !important; }
+body.app main > p.sub { margin-bottom: 16px; }
+body.app main { padding-top: calc(env(safe-area-inset-top, 0px) + 16px); }
+
+.lib h2 { font-size: 15px; margin: 0 0 10px; color: var(--fg); }
+.lib .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.lib .hint { color: var(--muted); font-size: 13px; }
+.lib ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.lib li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--line); min-height: 52px; }
+.lib li:first-child { border-top: 0; }
+.lib li.sel { background: rgba(217, 71, 43, .14); }
+.lib li label { flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer; min-width: 0; }
+.lib li input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.lib .name { font-weight: 600; overflow-wrap: anywhere; }
+.lib .meta { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+.lib .del { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 6px 10px; font-size: 12px; }
+.lib .empty { padding: 14px; color: var(--muted); font-size: 14px; }
+.lib .busy { color: var(--muted); font-size: 13px; }
+#setup.applying #start { pointer-events: none; opacity: .5; }
+
+/* Touch controls */
+#appPad { position: fixed; inset: 0; z-index: 4; pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+#appPad[hidden] { display: none; }
+#appPad .zone { position: absolute; left: 0; top: 18%; bottom: 0; width: 45%; pointer-events: auto; touch-action: none; }
+#appPad .stick { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.07); pointer-events: none; }
+#appPad .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
+  background: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.45); }
+#appPad .stick.idle { opacity: .55; }
+#appPad .b { position: absolute; pointer-events: auto; touch-action: none; border-radius: 50%; padding: 0;
+  background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.3); color: rgba(255,255,255,.88);
+  font: 700 13px/1 system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+#appPad .b.on { background: rgba(217,71,43,.6); }
+#appPad .fire { width: 92px; height: 92px; right: calc(env(safe-area-inset-right,0px) + 20px); bottom: calc(env(safe-area-inset-bottom,0px) + 24px); background: rgba(217,71,43,.38); font-size: 15px; }
+#appPad .use { width: 66px; height: 66px; right: calc(env(safe-area-inset-right,0px) + 126px); bottom: calc(env(safe-area-inset-bottom,0px) + 18px); }
+#appPad .wpn { width: 58px; height: 58px; right: calc(env(safe-area-inset-right,0px) + 40px); bottom: calc(env(safe-area-inset-bottom,0px) + 132px); }
+#appPad .run { width: 54px; height: 54px; right: calc(env(safe-area-inset-right,0px) + 130px); bottom: calc(env(safe-area-inset-bottom,0px) + 100px); font-size: 11px; }
+#appPad .top { position: absolute; top: calc(env(safe-area-inset-top,0px) + 8px); left: calc(env(safe-area-inset-left,0px) + 8px); display: flex; gap: 6px; pointer-events: none; }
+#appPad .top .b { position: static; border-radius: 6px; padding: 7px 11px; font-size: 11px; }
+
+/* Paused overlay (shown when returning from the background) */
+#appPause { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.6); color: #fff; font: 600 18px/1.4 system-ui, sans-serif; text-align: center; padding: 24px; }
+#appPause[hidden] { display: none; }
+#appPause small { display: block; font-weight: 400; font-size: 14px; color: rgba(255,255,255,.7); margin-top: 6px; }

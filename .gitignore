@@ -1,0 +1,13 @@
+node_modules/
+www/
+build/
+engine/build/
+*.apk
+
+# never commit game data or signing keys
+*.wad
+*.WAD
+*.keystore
+*.jks
+*.p12
+secrets/

@@ -1,0 +1,15 @@
+{
+  "appId": "no.adiam.wadrunner",
+  "appName": "WAD Runner",
+  "webDir": "www",
+  "android": {
+    "appendUserAgent": "WADRunnerApp",
+    "backgroundColor": "#000000",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

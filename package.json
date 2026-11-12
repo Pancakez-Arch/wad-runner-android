@@ -1,0 +1,21 @@
+{
+  "name": "wad-runner-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WAD Runner: Doom-engine games with your own WADs, packaged as an Android app with Capacitor.",
+  "license": "GPL-2.0-only",
+  "scripts": {
+    "import-site": "node scripts/import-site.mjs",
+    "fetch-freedoom": "node scripts/fetch-freedoom.mjs",
+    "build-engine": "bash scripts/build-engine.sh",
+    "build": "node scripts/build-www.mjs",
+    "sync": "npm run build && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.10",
+    "@capacitor/core": "7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.10"
+  }
+}
