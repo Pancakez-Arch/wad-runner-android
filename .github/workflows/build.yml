@@ -88,15 +88,22 @@ jobs:
           DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
           mkdir -p ~/.android
-          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
-            printf '%s' "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-            echo "Using the debug keystore from the DEBUG_KEYSTORE_B64 secret."
-          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "::error::DEBUG_KEYSTORE_B64 secret is missing; release APKs must use the fixed key."
-            exit 1
-          else
-            echo "::warning::DEBUG_KEYSTORE_B64 secret not set: this APK gets a throwaway key and will not install over other builds."
-          fi
+          fail() {
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "::error::$1 Release APKs must use the fixed key."; exit 1; fi
+            echo "::warning::$1 This APK gets a throwaway key and will not install over other builds."
+            rm -f ~/.android/debug.keystore
+            exit 0
+          }
+          [ -n "$DEBUG_KEYSTORE_B64" ] || fail "DEBUG_KEYSTORE_B64 secret is not set."
+          # Tolerate spaces/line breaks added when copying the value on a phone.
+          clean=$(printf '%s' "$DEBUG_KEYSTORE_B64" | tr -d ' \t\r\n')
+          bad=$(printf '%s' "$clean" | tr -d 'A-Za-z0-9+/=' | wc -c)
+          echo "Secret: ${#clean} base64 characters (expected 3608), ${bad} invalid characters."
+          printf '%s' "$clean" | base64 -d > ~/.android/debug.keystore 2>/dev/null \
+            || fail "DEBUG_KEYSTORE_B64 is not valid base64 (incomplete copy?)."
+          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null 2>&1 \
+            || fail "DEBUG_KEYSTORE_B64 decodes, but not to a keystore with alias androiddebugkey / password android."
+          echo "Using the fixed debug keystore (sha256 $(sha256sum ~/.android/debug.keystore | cut -c1-16))."
 
       - name: Build debug APK
         working-directory: android
