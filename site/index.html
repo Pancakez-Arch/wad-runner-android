@@ -152,7 +152,8 @@
     <summary>Controls</summary>
     <table>
       <tr><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td><td>Move / turn</td></tr>
-      <tr><td>Mouse</td><td>Click the game to capture; move to turn (Doom has no up/down aim). <kbd>Esc</kbd> releases.</td></tr>
+      <tr><td>Mouse</td><td>Click the game to capture; move to turn and look up/down. <kbd>Esc</kbd> releases.</td></tr>
+      <tr><td><kbd>PgUp</kbd> / <kbd>PgDn</kbd>, <kbd>End</kbd></td><td>Look up / down, re-centre view</td></tr>
       <tr><td><kbd>Ctrl</kbd> or left click</td><td>Fire</td></tr>
       <tr><td><kbd>Space</kbd> or right click</td><td>Open doors / use switches</td></tr>
       <tr><td><kbd>Shift</kbd></td><td>Run</td></tr>
@@ -385,8 +386,28 @@
   // WASD (physical keys, any layout): W/S walk, A/D strafe. The letter itself is
   // still sent too, so cheat codes like IDDQD keep working.
   const WASD = { KeyW: 0xad, KeyS: 0xaf, KeyA: 0xa0, KeyD: 0xa1 };
+  // Free-look (engine extension): -60 (down) .. +60 (up). Mouse up/down, PgUp/PgDn, End re-centres.
+  let look = 0;
+  function setLook(v) {
+    look = Math.max(-60, Math.min(60, v));
+    if (window.Module && Module._dg_set_look) Module._dg_set_look(Math.round(look));
+  }
+  let lookKeyTimer = null;
+  function lookKeys(e, down) {
+    if (!['PageUp', 'PageDown', 'End'].includes(e.key)) return false;
+    e.preventDefault();
+    clearInterval(lookKeyTimer);
+    if (down && e.key === 'End') setLook(0);
+    else if (down) {
+      const step = e.key === 'PageUp' ? 3 : -3;
+      setLook(look + step);
+      lookKeyTimer = setInterval(() => setLook(look + step), 30);
+    }
+    return true;
+  }
   function onKey(e, down) {
     if (!playing) return;
+    if (lookKeys(e, down)) return;
     const k = doomKey(e);
     if (!k) return;
     e.preventDefault();
@@ -434,6 +455,7 @@
     });
     document.addEventListener('mousemove', e => {
       if (playing && locked() && e.movementX) send(Math.round(e.movementX * 4));
+      if (playing && locked() && e.movementY) setLook(look - e.movementY * 0.25);
     });
     document.addEventListener('pointerlockchange', () => {
       if (!locked() && buttons) { buttons = 0; send(0); }
@@ -503,7 +525,7 @@
     const s = $('status');
     if (!playing) return;
     s.textContent = s.dataset.mouse
-      ? 'Mouse captured: move to turn, left click fire, right click use. Esc releases it.'
+      ? 'Mouse captured: move to turn and look up/down, left click fire, right click use. Esc releases it.'
       : 'Running: ' + $('info').textContent + '. Click the game to capture the mouse.';
   }
 
