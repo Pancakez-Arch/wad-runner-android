@@ -9,7 +9,7 @@ offline with no server.
   [Capacitor](https://capacitorjs.com)
 - WAD library: import several `.wad` / `.deh` files at once (50 MB+ is fine). They're kept on
   the phone, and you can pick one game plus any mods, or delete them
-- Touch controls: move/turn stick on the left, swipe the right side to turn and look up/down
+- Touch controls: stick on the left (up/down walk, left/right strafe), swipe the right side to turn and look up/down
   (double-tap there to re-centre), FIRE, USE, WPN (next weapon), RUN, MENU, ENTER, Y, MAP
 - Vertical free-look added to the engine (shots still auto-aim vertically, as in classic Doom)
 - Bluetooth gamepad (standard mapping) and keyboard
@@ -34,10 +34,10 @@ signed with the same key (see *Signing key* below).
 
 | Touch | Gamepad | Keyboard | Action |
 |---|---|---|---|
-| Stick up/down | Left stick / D-pad | ↑ ↓ | Walk |
-| Stick left/right, swipe right side | Right stick / D-pad ← → | ← → | Turn |
+| Stick up/down | Left stick / D-pad | ↑ ↓ or W S | Walk |
+| Swipe right side sideways | Right stick / D-pad ← → | ← → | Turn |
 | Swipe right side up/down (double-tap = centre) | Right stick up/down (click = centre) | — | Look up/down |
-| — | Left stick sideways, LB / RB | Alt+← → | Strafe |
+| Stick left/right | Left stick sideways, LB / RB | A D or Alt+← → | Strafe |
 | FIRE | A, RT | Ctrl | Fire |
 | USE | B | Space | Doors / switches |
 | RUN (toggle) | LT (hold) | Shift | Run |

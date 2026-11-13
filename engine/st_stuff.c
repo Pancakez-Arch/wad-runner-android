@@ -464,7 +464,9 @@ ST_Responder (event_t* ev)
   }
 
   // if a user keypress...
-  else if (ev->type == ev_keydown)
+  // Only printable characters feed the cheat sequences, so movement keys pressed
+  // alongside (e.g. WASD strafing, which also sends the letter) don't reset them.
+  else if (ev->type == ev_keydown && ev->data2 > 0 && ev->data2 < 0x80)
   {
     if (!netgame && gameskill != sk_nightmare)
     {

@@ -379,11 +379,20 @@
   $('wpnBtn').addEventListener('pointerup', () => $('wpnBtn').classList.remove('on'));
   for (const b of pad.querySelectorAll('button')) b.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Floating stick (left side): up/down = walk, left/right = turn.
+  // Floating stick (left side): up/down = walk, left/right = strafe. Turning is the right-side swipe.
   const zone = $('stickZone'), stick = $('stick'), knob = $('knob');
   const R = 44;
   let stickId = null, cx = 0, cy = 0, sx = 0, sy = 0;
   let fwd = 0;   // -1 back, 0, 1 forward
+  let side = 0;  // -1 strafe left, 0, 1 strafe right
+  function setSide(v) {
+    if (v === side) return;
+    if (side === -1) hold(K.strafeL, false);
+    if (side === 1) hold(K.strafeR, false);
+    side = v;
+    if (side === -1) hold(K.strafeL, true);
+    if (side === 1) hold(K.strafeR, true);
+  }
   function setFwd(v) {
     if (v === fwd) return;
     if (fwd === 1) hold(K.up, false);
@@ -420,11 +429,13 @@
     sx = dx / R; sy = dy / R;
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
     setFwd(sy < -0.35 ? 1 : sy > 0.35 ? -1 : 0);
+    setSide(sx < -0.35 ? -1 : sx > 0.35 ? 1 : 0);
   });
   const stickUp = e => {
     if (e.pointerId !== stickId) return;
     stickId = null; sx = sy = 0;
     setFwd(0);
+    setSide(0);
     resetStick();
   };
   zone.addEventListener('pointerup', stickUp);
@@ -500,10 +511,9 @@
   window.addEventListener('gamepadconnected', () => { usingPad = false; showPad(); });
   window.addEventListener('touchstart', () => { if (!usingPad) { usingPad = true; showPad(); } }, { passive: true, capture: true });
 
-  // One loop drives the stick's analog turning and gamepad polling.
+  // One loop drives gamepad polling.
   function frame() {
     if (playing && pauseEl.hidden) {
-      if (stickId !== null && Math.abs(sx) > 0.12) turn(Math.sign(sx) * sx * sx * 95);
       pollGamepads();
     }
     requestAnimationFrame(frame);

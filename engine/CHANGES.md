@@ -32,3 +32,5 @@ OPL music files from [Chocolate Doom](https://github.com/chocolate-doom/chocolat
 - Vertical free-look (`dg_set_look`): `R_SetupFrame` shifts `centery` by `dg_lookdir` and rebuilds
   `yslope` (as Heretic does); the weapon sprite is compensated so it stays in place
   (`r_main.c`, `r_things.c`, `doomgeneric_web.c`). Aiming is unchanged (vanilla autoaim).
+- Cheat codes only consume printable characters (`st_stuff.c`), so movement keys sent together with
+  a letter (WASD on the keyboard) don't reset a half-typed cheat.

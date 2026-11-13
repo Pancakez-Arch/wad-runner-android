@@ -156,7 +156,8 @@
       <tr><td><kbd>Ctrl</kbd> or left click</td><td>Fire</td></tr>
       <tr><td><kbd>Space</kbd> or right click</td><td>Open doors / use switches</td></tr>
       <tr><td><kbd>Shift</kbd></td><td>Run</td></tr>
-      <tr><td><kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd></td><td>Strafe</td></tr>
+      <tr><td><kbd>W</kbd> <kbd>S</kbd></td><td>Walk forward / back</td></tr>
+      <tr><td><kbd>A</kbd> <kbd>D</kbd> or <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd></td><td>Strafe left / right</td></tr>
       <tr><td><kbd>1</kbd>–<kbd>7</kbd></td><td>Select weapon</td></tr>
       <tr><td><kbd>Tab</kbd></td><td>Automap</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Menu</td></tr>
@@ -381,14 +382,20 @@
   }
   let playing = false;
   const held = new Set();
+  // WASD (physical keys, any layout): W/S walk, A/D strafe. The letter itself is
+  // still sent too, so cheat codes like IDDQD keep working.
+  const WASD = { KeyW: 0xad, KeyS: 0xaf, KeyA: 0xa0, KeyD: 0xa1 };
   function onKey(e, down) {
     if (!playing) return;
     const k = doomKey(e);
     if (!k) return;
     e.preventDefault();
     if (down && e.repeat) return;
-    if (down) held.add(k); else held.delete(k);
-    Module._dg_push_key(down ? 1 : 0, k);
+    for (const key of [k, WASD[e.code]]) {
+      if (!key) continue;
+      if (down) held.add(key); else held.delete(key);
+      Module._dg_push_key(down ? 1 : 0, key);
+    }
   }
   window.addEventListener('keydown', e => onKey(e, true), { capture: true });
   window.addEventListener('keyup', e => onKey(e, false), { capture: true });
