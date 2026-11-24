@@ -1,6 +1,6 @@
 {
   "appId": "no.adiam.wadrunner",
-  "appName": "WAD Runner",
+  "appName": "Ember Runner",
   "webDir": "www",
   "android": {
     "appendUserAgent": "WADRunnerApp",

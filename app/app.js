@@ -6,6 +6,12 @@
   const $ = id => document.getElementById(id);
   document.body.classList.add('app');
 
+  // Short launch splash: logo + name, then fade out.
+  const splash = document.createElement('div'); splash.id = 'appSplash';
+  splash.innerHTML = '<img src="icon-512.png" alt=""><div>Ember Runner</div>';
+  document.body.append(splash);
+  setTimeout(() => { splash.classList.add('out'); setTimeout(() => splash.remove(), 400); }, 1200);
+
   // ---------------------------------------------------------------- keys ----
   const K = {
     up: 0xad, down: 0xaf, left: 0xac, right: 0xae, strafeL: 0xa0, strafeR: 0xa1,
