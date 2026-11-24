@@ -1,51 +1,23 @@
-// WAD Runner Android app layer. Runs after the site's own script and talks to it
-// only through the DOM (#iwad/#pwads inputs, #start) and the engine exports
-// (Module._dg_push_key / _dg_push_mouse / _dg_set_paused).
+// WAD Runner Android app layer. Runs after the site's own script (which starts the
+// game on #start) and engines.js. The engine is reached only through the plugin
+// interface (see engines.js); the site is reached through the DOM (#iwad/#pwads, #start).
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
   document.body.classList.add('app');
 
-  // ---------------------------------------------------------------- keys ----
-  const K = {
-    up: 0xad, down: 0xaf, left: 0xac, right: 0xae, strafeL: 0xa0, strafeR: 0xa1,
-    fire: 0xa3, use: 0xa2, run: 0x80 + 0x36, esc: 27, enter: 13, tab: 9, back: 0x7f, yes: 121,
-  };
-  const engineReady = () => window.Module && typeof Module._dg_push_key === 'function' && playing;
-  // Several inputs (stick, buttons, gamepad) may hold the same key; count holders.
-  const holders = new Map();
-  function hold(key, down) {
-    if (!engineReady()) return;
-    const n = holders.get(key) || 0;
-    const next = Math.max(0, n + (down ? 1 : -1));
-    holders.set(key, next);
-    if (n === 0 && next === 1) Module._dg_push_key(1, key);
-    if (n === 1 && next === 0) Module._dg_push_key(0, key);
-  }
-  function tap(key) {
-    if (!engineReady()) return;
-    Module._dg_push_key(1, key);
-    setTimeout(() => window.Module && Module._dg_push_key(0, key), 70);
-  }
-  function releaseAll() {
-    for (const [key, n] of holders) if (n > 0 && window.Module) Module._dg_push_key(0, key);
-    holders.clear();
-  }
-  function turn(dx) { if (engineReady() && dx) Module._dg_push_mouse(0, Math.round(dx)); }
-  // Vertical free-look (engine extension): -60 (down) .. +60 (up), 200-line pixels.
-  let look = 0;
-  function setLook(v) {
-    look = Math.max(-60, Math.min(60, v));
-    if (window.Module && Module._dg_set_look) Module._dg_set_look(Math.round(look));
-  }
-  function resumeAudio() {
-    const ctx = window.Module && Module.SDL2 && Module.SDL2.audioContext;
-    if (ctx && ctx.state === 'suspended') ctx.resume();
-  }
-  function suspendAudio() {
-    const ctx = window.Module && Module.SDL2 && Module.SDL2.audioContext;
-    if (ctx && ctx.state === 'running') ctx.suspend();
-  }
+  // -------------------------------------------------------------- engine ----
+  const engine = WADRunnerEngines.doom;
+  const K = engine.keys;
+  let playing = false;
+  const live = () => playing && engine.ready();
+  const hold = (key, down) => { if (live()) engine.hold(key, down); };
+  const tap = key => { if (live()) engine.tap(key); };
+  const turn = dx => { if (live()) engine.turn(dx); };
+  const releaseAll = () => engine.releaseAll();
+  const setLook = v => engine.setLook(v);
+  const resumeAudio = () => engine.audio.resume();
+  const suspendAudio = () => engine.audio.suspend();
 
   // Native helper plugin (android/.../GameScreenPlugin.java): keep the screen on.
   const native = window.Capacitor && window.Capacitor.registerPlugin
@@ -76,32 +48,6 @@
   const getWad = key => tx('readonly', s => s.get(key));
   const putWad = rec => tx('readwrite', s => s.put(rec));
   const delWad = key => tx('readwrite', s => s.delete(key));
-
-  // Read the WAD header + lump directory from a Blob without loading it all.
-  async function inspect(blob, name) {
-    if (/\.(deh|bex)$/i.test(name)) return { kind: 'DEH', title: 'DeHackEd patch' };
-    const head = new DataView(await blob.slice(0, 12).arrayBuffer());
-    if (head.byteLength < 12) throw new Error('too small to be a WAD');
-    const id = String.fromCharCode(head.getUint8(0), head.getUint8(1), head.getUint8(2), head.getUint8(3));
-    if (id !== 'IWAD' && id !== 'PWAD') throw new Error('not a WAD file');
-    const n = head.getInt32(4, true), off = head.getInt32(8, true);
-    if (n < 0 || off < 0 || off + n * 16 > blob.size) throw new Error('WAD directory is corrupt');
-    const dir = new Uint8Array(await blob.slice(off, off + n * 16).arrayBuffer());
-    const names = new Set();
-    for (let i = 0; i < n; i++) {
-      let s = '';
-      for (let j = 0; j < 8; j++) { const c = dir[i * 16 + 8 + j]; if (!c) break; s += String.fromCharCode(c); }
-      names.add(s.toUpperCase());
-    }
-    if (id === 'PWAD') return { kind: 'PWAD', title: 'Mod (PWAD)' };
-    const lower = name.toLowerCase();
-    const known = { 'doom2.wad': 'Doom II', 'plutonia.wad': 'Final Doom: Plutonia', 'tnt.wad': 'Final Doom: TNT',
-      'freedoom1.wad': 'Freedoom: Phase 1', 'freedoom2.wad': 'Freedoom: Phase 2', 'chex.wad': 'Chex Quest' };
-    const title = known[lower] || (names.has('MAP01') ? 'Doom II-format game'
-      : names.has('E4M1') ? 'Ultimate Doom' : names.has('E2M1') ? 'Doom (registered)'
-      : names.has('E1M1') ? 'Doom (shareware)' : 'IWAD');
-    return { kind: 'IWAD', title };
-  }
 
   const fmtMB = n => (n / 1048576).toFixed(1) + ' MB';
   const SEL_KEY = 'wadrunner.selection';
@@ -134,7 +80,7 @@
     for (const f of files) {
       busy.textContent = `Importing ${f.name} (${fmtMB(f.size)})…`;
       try {
-        const info = await inspect(f, f.name);
+        const info = await engine.inspect(f, f.name);
         // Copy the bytes into app storage; the picked file may not stay readable later.
         const blob = new Blob([await f.arrayBuffer()], { type: 'application/octet-stream' });
         const key = f.name.toLowerCase();
@@ -227,13 +173,7 @@
     if (!rec) throw new Error('WAD not found');
     return new File([rec.blob], rec.name);
   }
-  function setInputFiles(input, files) {
-    const dt = new DataTransfer();
-    files.forEach(f => dt.items.add(f));
-    input.files = dt.files;
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  // Hand the selected WADs to the site's own loader (validation + game detection).
+  // Hand the selected WADs to the engine, which feeds the site's own loader (validation + game detection).
   let applying = Promise.resolve();
   function apply() {
     setup.classList.add('applying');   // blocks Start until mods are handed over too
@@ -241,15 +181,10 @@
       if (!selection.iwad) return;
       const busy = $('libBusy');
       try {
-        const iwadFile = await fileFor(selection.iwad);
-        setInputFiles($('iwad'), [iwadFile]);
-        // The site reads the file asynchronously; wait until it accepts it.
-        for (let i = 0; i < 200 && $('start').disabled && !$('info').classList.contains('err'); i++) {
-          await new Promise(r => setTimeout(r, 50));
-        }
+        const base = await fileFor(selection.iwad);
         const mods = [];
         for (const m of selection.mods) mods.push(await fileFor(m));
-        setInputFiles($('pwads'), mods);
+        await engine.start({ base, mods });
       } catch (err) {
         busy.hidden = false;
         busy.textContent = String(err.message || err);
@@ -260,8 +195,7 @@
   render().then(apply).catch(err => console.warn(err));
 
   // ------------------------------------------------- playing / lifecycle ----
-  let playing = false;
-  const pad = document.createElement('div');
+  const pad =document.createElement('div');
   pad.id = 'appPad';
   pad.hidden = true;
   pad.innerHTML = `
@@ -311,7 +245,7 @@
   function appPause() {
     if (!playing || pausedForBackground) return;
     releaseAll();
-    if (window.Module && Module._dg_set_paused) Module._dg_set_paused(1);
+    engine.pause(true);
     suspendAudio();
     keepAwake(false);
     pausedForBackground = true;
@@ -328,7 +262,7 @@
     pausedForBackground = false;
     pauseEl.hidden = true;
     resumeAudio();
-    if (window.Module && Module._dg_set_paused) Module._dg_set_paused(0);
+    engine.pause(false);
     keepAwake(true);
   }
   pauseEl.addEventListener('pointerdown', e => { e.preventDefault(); continueGame(); });
@@ -463,18 +397,14 @@
     const dx = e.clientX - lx, dy = e.clientY - ly;
     lx = e.clientX; ly = e.clientY;
     turn(dx * TURN_PER_PX);
-    if (dy) setLook(look - dy * LOOK_PER_PX);
+    if (dy) setLook(engine.look - dy * LOOK_PER_PX);
   });
   const lookUp = e => { if (e.pointerId === lookId) lookId = null; };
   lookZone.addEventListener('pointerup', lookUp);
   lookZone.addEventListener('pointercancel', lookUp);
 
   // ------------------------------------------------------------ gamepad ----
-  // Standard mapping: left stick move/strafe, right stick turn + look (click = re-centre), A/RT fire (+Enter in menus),
-  // B use (+Backspace in menus), X next weapon, Y "yes", LB/RB strafe, LT run,
-  // Back/Select automap, Start menu, D-pad arrows.
-  const GP = { 0: ['fire', 'enter'], 1: ['use', 'back'], 3: ['yes'], 4: ['strafeL'], 5: ['strafeR'], 6: ['run'], 7: ['fire'],
-    8: ['tab'], 9: ['esc'], 12: ['up'], 13: ['down'], 14: ['left'], 15: ['right'] };
+  // Button map (engine.gamepad) and its comment live in engines.js; X (button 2) = next weapon, right stick = turn + look.
   const TAP_ONLY = new Set(['enter', 'back', 'yes', 'tab', 'esc']);
   const prevButtons = {};
   const axisKeys = {};
@@ -493,7 +423,7 @@
         prev[i] = down;
         if (down) { usingPad = false; showPad(); resumeAudio(); }
         if (i === 2 && down) nextWeapon();
-        for (const name of GP[i] || []) {
+        for (const name of engine.gamepad[i] || []) {
           if (TAP_ONLY.has(name)) { if (down) tap(K[name]); } else hold(K[name], down);
         }
       });
@@ -504,7 +434,7 @@
       axisKey(gp.index + 'l', ax < -0.5, 'strafeL');
       axisKey(gp.index + 'r', ax > 0.5, 'strafeR');
       if (Math.abs(rx) > 0.15) turn(Math.sign(rx) * rx * rx * 95);
-      if (Math.abs(ry) > 0.2) setLook(look - Math.sign(ry) * ry * ry * 2.5);
+      if (Math.abs(ry) > 0.2) setLook(engine.look - Math.sign(ry) * ry * ry * 2.5);
       if (gp.buttons[11] && gp.buttons[11].pressed) setLook(0);   // right-stick click re-centres
     }
   }
