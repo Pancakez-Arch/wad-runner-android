@@ -117,7 +117,7 @@ jobs:
       - name: Name the APK
         id: apk
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then name="WADRunner-${GITHUB_REF_NAME}.apk"; else name="WADRunner-build${GITHUB_RUN_NUMBER}.apk"; fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then name="AnyPercent-${GITHUB_REF_NAME}.apk"; else name="AnyPercent-build${GITHUB_RUN_NUMBER}.apk"; fi
           cp android/app/build/outputs/apk/debug/app-debug.apk "$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           ls -la "$name"
@@ -138,6 +138,6 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" "${{ steps.apk.outputs.name }}" --clobber
           else
             gh release create "$GITHUB_REF_NAME" "${{ steps.apk.outputs.name }}" \
-              --title "WAD Runner $GITHUB_REF_NAME" \
+              --title "Any% $GITHUB_REF_NAME" \
               --notes "Android APK. Download it on your phone and open it to install. Includes Freedoom (BSD); bring your own WADs for Doom/Doom II. Source: this repository (GPL-2.0)."
           fi
