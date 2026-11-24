@@ -64,3 +64,29 @@ body.immersive #appLogo { position: fixed; top: calc(env(safe-area-inset-top, 0p
 #appSplash img { width: 112px; height: 112px; border-radius: 24px; }
 #appSplash div { font: 600 24px/1 system-ui, sans-serif; letter-spacing: .04em; }
 #appSplash.out { opacity: 0; pointer-events: none; }
+
+/* ---- NES engine (app/nes.js): game canvas + data-driven pad. Doom's #appPad is untouched. ---- */
+#setup.nes-sel #start { display: none; }
+#nesPlay { margin-top: 12px; }
+body.immersive #nesCanvas { image-rendering: pixelated; aspect-ratio: 256 / 240; height: auto;
+  width: min(100%, calc(100vh * 256 / 240)); width: min(100%, calc(100dvh * 256 / 240)); }
+#appPadData { position: fixed; inset: 0; z-index: 4; pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+#appPadData[hidden] { display: none; }
+#appPadData .b { position: absolute; pointer-events: auto; touch-action: none; padding: 0;
+  background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.3); color: rgba(255,255,255,.88);
+  font: 700 14px/1 system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+#appPadData .b.on { background: rgba(217,71,43,.6); }
+/* D-pad, left: 3x3 grid of 56px cells */
+#appPadData .dp-up, #appPadData .dp-down, #appPadData .dp-left, #appPadData .dp-right { width: 56px; height: 56px; border-radius: 10px; }
+#appPadData .dp-up    { left: calc(env(safe-area-inset-left,0px) + 76px); bottom: calc(env(safe-area-inset-bottom,0px) + 132px); }
+#appPadData .dp-down  { left: calc(env(safe-area-inset-left,0px) + 76px); bottom: calc(env(safe-area-inset-bottom,0px) + 20px); }
+#appPadData .dp-left  { left: calc(env(safe-area-inset-left,0px) + 20px); bottom: calc(env(safe-area-inset-bottom,0px) + 76px); }
+#appPadData .dp-right { left: calc(env(safe-area-inset-left,0px) + 132px); bottom: calc(env(safe-area-inset-bottom,0px) + 76px); }
+/* B / A, right */
+#appPadData .dp-a, #appPadData .dp-b { width: 68px; height: 68px; border-radius: 50%; font-size: 16px; }
+#appPadData .dp-a { right: calc(env(safe-area-inset-right,0px) + 20px); bottom: calc(env(safe-area-inset-bottom,0px) + 84px); background: rgba(217,71,43,.38); }
+#appPadData .dp-b { right: calc(env(safe-area-inset-right,0px) + 100px); bottom: calc(env(safe-area-inset-bottom,0px) + 36px); }
+/* SELECT / START, bottom centre */
+#appPadData .dp-select, #appPadData .dp-start { height: 34px; min-width: 76px; border-radius: 17px; font-size: 11px; bottom: calc(env(safe-area-inset-bottom,0px) + 14px); }
+#appPadData .dp-select { left: calc(50% - 84px); }
+#appPadData .dp-start  { left: calc(50% + 8px); }
