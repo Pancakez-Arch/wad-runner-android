@@ -67,7 +67,7 @@ const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&
 patch('app css', '</head>', '<link rel="stylesheet" href="app.css">\n</head>');
 patch('app flag + bundled list', '\n<script>\n(() => {',
   `\n<script>window.WADRUNNER_APP = true; window.WADRUNNER_BUNDLED = ${JSON.stringify(bundled)};</script>\n<script>\n(() => {`);
-patch('app script', '</script>\n</body>', '</script>\n<script src="engines.js"></script>\n<script src="app.js"></script>\n</body>');
+patch('app script', '</script>\n</body>', '</script>\n<script src="engines.js"></script>\n<script src="nes.js"></script>\n<script src="app.js"></script>\n</body>');
 // The app keeps its own WAD library, so the site's single "remembered WAD" is off.
 patch('no remember', 'async function remember() {', 'async function remember() { if (window.WADRUNNER_APP) return;');
 patch('no restore', "const saved = await store.get('iwad');", "const saved = window.WADRUNNER_APP ? null : await store.get('iwad');");
