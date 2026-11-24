@@ -114,5 +114,17 @@
     };
   })();
 
-  window.WADRunnerEngines = { doom };
+  // Registry + picker. Other plugins (nes.js) call register(); pick() chooses an engine for a file:
+  // by extension first (no false positives), else the first engine whose inspect() accepts it.
+  const engines = [doom];
+  async function pick(blob, name) {
+    const ext = (/\.[^.]+$/.exec(name) || [''])[0].toLowerCase();
+    const byExt = engines.filter(e => e.accepts.extensions.includes(ext));
+    let firstErr = null;
+    for (const e of byExt.length ? byExt : engines) {
+      try { return { engine: e, info: await e.inspect(blob, name) }; } catch (err) { firstErr = firstErr || err; }
+    }
+    throw firstErr || new Error('unsupported file');
+  }
+  window.WADRunnerEngines = { doom, engines, pick, register: e => { if (!engines.includes(e)) engines.push(e); e.id && (window.WADRunnerEngines[e.id] = e); } };
 })();

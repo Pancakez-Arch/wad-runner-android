@@ -16,8 +16,8 @@
   setTimeout(() => { splash.classList.add('out'); setTimeout(() => splash.remove(), 400); }, 1200);
 
   // -------------------------------------------------------------- engine ----
-  const engine = WADRunnerEngines.doom;
-  const K = engine.keys;
+  let engine = WADRunnerEngines.doom;   // switched by the selected library item (setEngine)
+  let K = engine.keys;
   let playing = false;
   const live = () => playing && engine.ready();
   const hold = (key, down) => { if (live()) engine.hold(key, down); };
@@ -58,6 +58,7 @@
   const putWad = rec => tx('readwrite', s => s.put(rec));
   const delWad = key => tx('readwrite', s => s.delete(key));
 
+  const isBase = kind => kind === 'IWAD' || kind === 'ROM';   // one base file (game or ROM) is picked
   const fmtMB = n => (n / 1048576).toFixed(1) + ' MB';
   const SEL_KEY = 'wadrunner.selection';
   let selection = { iwad: null, mods: [] };
@@ -71,11 +72,12 @@
     <h2>Your WADs</h2>
     <div class="actions">
       <button id="libImport">Import WADs…</button>
-      <span class="hint">Pick one game (IWAD) and any mods. Imported files stay on this phone.</span>
+      <span class="hint">Pick one game (IWAD) and any mods, or a .nes ROM. Imported files stay on this phone.</span>
     </div>
     <input type="file" id="libFiles" multiple hidden>
     <ul id="libList"><li class="empty">Loading…</li></ul>
-    <p class="busy" id="libBusy" hidden></p>`;
+    <p class="busy" id="libBusy" hidden></p>
+    <button id="nesPlay" hidden>Play NES game</button>`;
   const setup = $('setup');
   setup.insertBefore(panel, setup.firstChild);
   $('libImport').onclick = () => $('libFiles').click();
@@ -89,12 +91,12 @@
     for (const f of files) {
       busy.textContent = `Importing ${f.name} (${fmtMB(f.size)})…`;
       try {
-        const info = await engine.inspect(f, f.name);
+        const { info } = await WADRunnerEngines.pick(f, f.name);
         // Copy the bytes into app storage; the picked file may not stay readable later.
         const blob = new Blob([await f.arrayBuffer()], { type: 'application/octet-stream' });
         const key = f.name.toLowerCase();
         await putWad({ key, name: f.name, size: f.size, kind: info.kind, title: info.title, added: Date.now(), blob });
-        if (info.kind === 'IWAD') selection.iwad = key;
+        if (isBase(info.kind)) selection.iwad = key;
       } catch (err) {
         errors.push(`${f.name}: ${err.message || err}`);
       }
@@ -107,18 +109,28 @@
     await apply();
   };
 
+  let lastItems = [];
+  const engineForKind = kind => WADRunnerEngines.engines.find(e => e.library.base === kind || e.library.mods.includes(kind)) || WADRunnerEngines.doom;
+  function setEngine(e) {
+    if (e === engine) return;
+    engine.releaseAll();
+    engine = e;
+    K = e.keys;
+    showPad();
+  }
   async function render() {
     const ul = $('libList');
-    const own = (await listWads()).sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === 'IWAD' ? -1 : 1));
+    const own = (await listWads()).sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : isBase(a.kind) ? -1 : 1));
     const items = [
       ...own,
       ...BUNDLED.filter(b => !own.some(o => o.key === b.key)),
     ];
-    if (!selection.iwad || !items.some(i => i.key === selection.iwad && i.kind === 'IWAD')) {
-      const first = items.find(i => i.kind === 'IWAD');
+    lastItems = items;
+    if (!selection.iwad || !items.some(i => i.key === selection.iwad && isBase(i.kind))) {
+      const first = items.find(i => i.kind === 'IWAD') || items.find(i => isBase(i.kind));
       selection.iwad = first ? first.key : null;
     }
-    selection.mods = selection.mods.filter(m => items.some(i => i.key === m && i.kind !== 'IWAD'));
+    selection.mods = selection.mods.filter(m => items.some(i => i.key === m && !isBase(i.kind)));
     ul.innerHTML = '';
     if (!items.length) {
       ul.innerHTML = '<li class="empty">No WADs yet. Tap “Import WADs…” and choose your .wad files.</li>';
@@ -126,7 +138,7 @@
     }
     for (const it of items) {
       const li = document.createElement('li');
-      const isIwad = it.kind === 'IWAD';
+      const isIwad = isBase(it.kind);
       const checked = isIwad ? selection.iwad === it.key : selection.mods.includes(it.key);
       if (checked) li.classList.add('sel');
       const label = document.createElement('label');
@@ -147,7 +159,7 @@
       nm.textContent = it.title && isIwad ? it.title : it.name;
       const meta = document.createElement('span');
       meta.className = 'meta';
-      meta.textContent = `${it.name} · ${fmtMB(it.size)} · ${it.bundled ? 'included with the app' : isIwad ? 'game' : 'mod'}`;
+      meta.textContent = `${it.name} · ${fmtMB(it.size)} · ${it.bundled ? 'included with the app' : it.kind === 'ROM' ? 'NES game' : isIwad ? 'game' : 'mod'}`;
       text.append(nm, meta);
       label.append(input, text);
       li.append(label);
@@ -187,7 +199,13 @@
   function apply() {
     setup.classList.add('applying');   // blocks Start until mods are handed over too
     applying = applying.then(async () => {
-      if (!selection.iwad) return;
+      const sel = lastItems.find(i => i.key === selection.iwad);
+      const nesEngine = sel && engineForKind(sel.kind);
+      const isNes = !!nesEngine && nesEngine.id !== 'doom';
+      setEngine(isNes ? nesEngine : WADRunnerEngines.doom);
+      setup.classList.toggle('nes-sel', isNes);   // CSS hides the site's Start; #nesPlay starts the ROM
+      $('nesPlay').hidden = !isNes;
+      if (!selection.iwad || isNes) return;
       const busy = $('libBusy');
       try {
         const base = await fileFor(selection.iwad);
@@ -201,6 +219,16 @@
     }).finally(() => setup.classList.remove('applying'));
     return applying;
   }
+  $('nesPlay').onclick = async () => {
+    const busy = $('libBusy');
+    busy.hidden = true;
+    try {
+      await engine.start({ base: await fileFor(selection.iwad) });
+    } catch (err) {
+      busy.hidden = false;
+      busy.textContent = String(err.message || err);
+    }
+  };
   render().then(apply).catch(err => console.warn(err));
 
   // ------------------------------------------------- playing / lifecycle ----
@@ -221,6 +249,37 @@
     <button class="b use" data-hold="use">USE</button>
     <button class="b fire" data-hold="fire">FIRE</button>`;
   document.body.append(pad);
+  // Generic pad built from engine.pad (data) for non-Doom engines: buttons {id,label,key,kind:'hold'}.
+  const padData = document.createElement('div');
+  padData.id = 'appPadData';
+  padData.hidden = true;
+  document.body.append(padData);
+  let padDataFor = null;
+  function buildDataPad() {
+    if (padDataFor === engine) return;
+    padDataFor = engine;
+    padData.innerHTML = '';
+    for (const def of engine.pad || []) {
+      const b = document.createElement('button');
+      b.className = 'b dp-' + def.id;
+      b.textContent = def.label;
+      let id = null;
+      b.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        if (id !== null) return;
+        id = e.pointerId;
+        try { b.setPointerCapture(id); } catch (_) {}
+        b.classList.add('on');
+        hold(engine.keys[def.key], true);
+      });
+      const up = e => { if (id === null || e.pointerId !== id) return; id = null; b.classList.remove('on'); hold(engine.keys[def.key], false); };
+      b.addEventListener('pointerup', up);
+      b.addEventListener('pointercancel', up);
+      b.addEventListener('lostpointercapture', up);
+      b.addEventListener('contextmenu', e => e.preventDefault());
+      padData.append(b);
+    }
+  }
   const pauseEl = document.createElement('div');
   pauseEl.id = 'appPause';
   pauseEl.hidden = true;
@@ -230,7 +289,10 @@
   let usingPad = matchMedia('(pointer: coarse)').matches;
   const showPad = () => {
     const wasHidden = pad.hidden;
-    pad.hidden = !(playing && usingPad);
+    const show = playing && usingPad;
+    if (show && engine.id !== 'doom') buildDataPad();
+    padData.hidden = !(show && engine.id !== 'doom');
+    pad.hidden = !(show && engine.id === 'doom');
     if (wasHidden && !pad.hidden) requestAnimationFrame(() => resetStick());
   };
 
@@ -239,13 +301,14 @@
     setLook(0);
     keepAwake(true);
     showPad();
-    requestAnimationFrame(resetStick);   // place the stick once the pad has a size
+    if (engine.id === 'doom') requestAnimationFrame(resetStick);   // place the stick once the pad has a size
   });
   document.addEventListener('wad:stopped', () => {
     playing = false;
     releaseAll();
     keepAwake(false);
     pad.hidden = true;
+    padData.hidden = true;
     pauseEl.hidden = true;
   });
 
@@ -280,7 +343,7 @@
   window.wadBack = () => {
     if (!playing) return false;
     if (!pauseEl.hidden) { continueGame(); return true; }
-    tap(K.esc);
+    if (engine.back) engine.back(); else tap(K.esc);
     return true;
   };
 
@@ -419,6 +482,7 @@
   const axisKeys = {};
   function axisKey(id, active, key) {
     if (!!axisKeys[id] === active) return;
+    if (K[key] === undefined) return;
     axisKeys[id] = active;
     hold(K[key], active);
   }
@@ -431,7 +495,7 @@
         if (down === !!prev[i]) return;
         prev[i] = down;
         if (down) { usingPad = false; showPad(); resumeAudio(); }
-        if (i === 2 && down) nextWeapon();
+        if (i === 2 && down && engine.id === 'doom') nextWeapon();
         for (const name of engine.gamepad[i] || []) {
           if (TAP_ONLY.has(name)) { if (down) tap(K[name]); } else hold(K[name], down);
         }
@@ -440,8 +504,8 @@
       const [ax = 0, ay = 0, rx = 0, ry = 0] = gp.axes;
       axisKey(gp.index + 'f', ay < -0.4, 'up');
       axisKey(gp.index + 'b', ay > 0.4, 'down');
-      axisKey(gp.index + 'l', ax < -0.5, 'strafeL');
-      axisKey(gp.index + 'r', ax > 0.5, 'strafeR');
+      axisKey(gp.index + 'l', ax < -0.5, engine.id === 'doom' ? 'strafeL' : 'left');
+      axisKey(gp.index + 'r', ax > 0.5, engine.id === 'doom' ? 'strafeR' : 'right');
       if (Math.abs(rx) > 0.15) turn(Math.sign(rx) * rx * rx * 95);
       if (Math.abs(ry) > 0.2) setLook(engine.look - Math.sign(ry) * ry * ry * 2.5);
       if (gp.buttons[11] && gp.buttons[11].pressed) setLook(0);   // right-stick click re-centres
