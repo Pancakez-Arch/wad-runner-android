@@ -5,6 +5,9 @@
   'use strict';
   const $ = id => document.getElementById(id);
   document.body.classList.add('app');
+  const logo = document.createElement('img');
+  logo.id = 'appLogo'; logo.src = 'icon-192.png'; logo.alt = ''; logo.setAttribute('aria-hidden', 'true');
+  document.body.append(logo);
 
   // ---------------------------------------------------------------- keys ----
   const K = {
