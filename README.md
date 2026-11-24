@@ -1,4 +1,6 @@
-# WAD Runner for Android
+# Any% for Android
+
+_Formerly WAD Runner. Only the display name changed: the package id is still `no.adiam.wadrunner`, so updates install over the old app and keep your WADs and saves._
 
 Play Doom-engine games on Android with **your own WAD files**. The whole game (engine, web UI
 and the free [Freedoom](https://freedoom.github.io) IWADs) is bundled in the APK, so it runs
@@ -22,10 +24,10 @@ No commercial game data is included. Use your own `DOOM.WAD`, `DOOM2.WAD`, etc.
 ## Download and install
 
 1. Open this repository's **Releases** page on your phone and download the latest
-   `WADRunner-vX.Y.Z.apk`. Untagged builds are under **Actions → Build APK → (run) → Artifacts**
+   `AnyPercent-vX.Y.Z.apk`. Untagged builds are under **Actions → Build APK → (run) → Artifacts**
    (zipped; needs a GitHub login).
 2. Open the APK. Android asks to allow installs from your browser/Files app: allow it.
-3. Open **WAD Runner** → **Import WADs…** → choose your WAD files → select one → **Start**.
+3. Open **Any%** → **Import WADs…** → choose your WAD files → select one → **Start**.
 
 Updates install over the old version and keep your WADs and saves, because every build is
 signed with the same key (see *Signing key* below).

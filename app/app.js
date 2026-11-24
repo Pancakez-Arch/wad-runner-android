@@ -8,7 +8,7 @@
 
   // Short launch splash: logo + name, then fade out.
   const splash = document.createElement('div'); splash.id = 'appSplash';
-  splash.innerHTML = '<img src="icon-512.png" alt=""><div>Ember Runner</div>';
+  splash.innerHTML = '<img src="icon-512.png" alt=""><div>Any%</div>';
   document.body.append(splash);
   setTimeout(() => { splash.classList.add('out'); setTimeout(() => splash.remove(), 400); }, 1200);
 
