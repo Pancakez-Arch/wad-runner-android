@@ -8,6 +8,7 @@
     "import-site": "node scripts/import-site.mjs",
     "fetch-freedoom": "node scripts/fetch-freedoom.mjs",
     "build-engine": "bash scripts/build-engine.sh",
+    "build-nes-core": "bash scripts/build-nes-core.sh",
     "build": "node scripts/build-www.mjs",
     "sync": "npm run build && npx cap sync android"
   },

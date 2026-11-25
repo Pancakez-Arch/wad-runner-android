@@ -2,7 +2,9 @@
 
 WAD Runner is distributed under the **GNU General Public License, version 2** (see `LICENSE`).
 The complete corresponding source code is in this repository: the Doom engine in `engine/`,
-the web front-end in `site/` and `app/`, and the Android wrapper in `android/`.
+the NES glue in `engine-nes/`, the web front-end in `site/` and `app/`, and the Android wrapper in `android/`.
+The one exception is the fceumm NES core: its source is not copied here but fetched at a pinned
+commit by `scripts/build-nes-core.sh`, so its source offer is this repository plus that commit.
 
 | Component | Where | Licence | Copyright |
 |---|---|---|---|
@@ -10,6 +12,9 @@ the web front-end in `site/` and `app/`, and the Android wrapper in `android/`.
 | doomgeneric | `engine/` | GPL-2.0 | © ozkl and contributors — https://github.com/ozkl/doomgeneric |
 | Chocolate Doom (OPL music, MIDI, parts of the engine) | `engine/` | GPL-2.0-or-later | © Simon Howard and contributors — https://github.com/chocolate-doom/chocolate-doom |
 | Nuked OPL3 emulator (`opl3.c`) | `engine/` | GPL-2.0-or-later | © 2013–2016 Alexey Khokholov (Nuke.YKT) |
+| NES glue (`nes_glue.c`) | `engine-nes/` | GPL-2.0 | © this project's contributors |
+| fceumm (NES core, libretro) | built into `nes_core.wasm`; source fetched by `scripts/build-nes-core.sh` at commit `fb919fb6fa881aaa6279b765d480220579e5c606` | GPL-2.0 (most source files GPL-2.0-or-later) | © FCEUX / fceumm authors and contributors — https://github.com/libretro/libretro-fceumm |
+| libretro-common (part of fceumm's source tree) | fetched with fceumm | licence to be confirmed in the pinned clone (usually MIT) | © The RetroArch team |
 | SDL2, SDL2_mixer (linked by Emscripten) | built into `doomgeneric.wasm` | zlib | © Sam Lantinga and contributors |
 | Emscripten runtime (`doomgeneric.js`) | generated | MIT / UIUC | © Emscripten authors |
 | Capacitor | `android/`, npm | MIT | © Ionic and contributors |

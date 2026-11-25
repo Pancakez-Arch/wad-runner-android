@@ -30,6 +30,18 @@ if (existsSync(join(engineDir, 'doomgeneric.wasm'))) {
   console.warn('Engine: using the prebuilt copy from site/ (no background pause). Run `npm run build-engine` to build from source.');
 }
 
+// 2b. NES core (libretro fceumm + engine-nes/ glue, built by scripts/build-nes-core.sh). The .wasm must sit
+// beside nes_core.js (app/nes.js loads it with locateFile: f => f).
+const nesDir = join(root, 'build/nes');
+if (existsSync(join(nesDir, 'nes_core.wasm'))) {
+  for (const f of ['nes_core.js', 'nes_core.wasm']) cpSync(join(nesDir, f), join(www, f));
+  console.log('NES core: bundled');
+} else if (process.env.CI) {
+  throw new Error('build/nes missing: run `npm run build-nes-core` first');
+} else {
+  console.warn('NES core: not built, NES games will show "core missing". Run `npm run build-nes-core` to build it.');
+}
+
 // 3. Freedoom (BSD-3-Clause, redistributable)
 const bundled = [];
 const fd = join(root, 'build/freedoom');

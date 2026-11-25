@@ -63,6 +63,12 @@ jobs:
           source ~/emsdk/emsdk_env.sh
           npm run build-engine
 
+      - name: Build NES core
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          npm run build-nes-core
+          node scripts/smoke-nes-core.mjs
+
       # ---- Web app + bundled Freedoom ----
       - name: Install npm dependencies
         run: npm ci
